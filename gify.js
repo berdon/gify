@@ -15,7 +15,7 @@ slack.setWebhook(config.slack_webhook);
 const PORT = process.env.PORT || 8080; 
 
 function handleRequest(request, response) {
-	if (!('text' in retextuest.post)) {
+	if (!('text' in request.post)) {
 		response.statusCode = 404;
 		response.end();
 		return;
