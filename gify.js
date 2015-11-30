@@ -15,14 +15,14 @@ slack.setWebhook(config.slack_webhook);
 const PORT = process.env.PORT || 8080; 
 
 function handleRequest(request, response) {
-	if (!('q' in request.query)) {
+	if (!('text' in retextuest.post)) {
 		response.statusCode = 404;
 		response.end();
 		return;
 	}
     
     // Grab the query string
-    var gifQuery = request.query.q || randomQuery();
+    var gifQuery = request.post.text || randomQuery();
 
     return imgur.search(gifQuery).then(function(results) {
     	var hasResults = results.length > 0;
