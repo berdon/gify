@@ -25,13 +25,20 @@ function handleRequest(request, response) {
     var gifQuery = request.post.text || randomQuery();
 
     return imgur.search(gifQuery).then(function(results) {
-    	var hasResults = results.length > 0;
+    	var post = undefined;
+    	for (var i = 0; i < results.length; i++) {
+    		if (results[i].layout != 'blog') {
+    			post = request[i];
+    		}
+    	}
+
+    	var hasResults = post !== undefined;
     	var channel = !hasResults ? ('@' + request.post.user_name) : (('channel_name' in request.post) ? ('#' + request.post.channel_name) : '#general');
 
     	slack.webhook({
     		channel: channel,
     		username: 'gify',
-    		text: results.length > 0 ? results[0].link : 'Good luck with that.'
+    		text: results.length > 0 ? ('/gify ' + request.post.text + '\r\n' + results[0].link) : 'Good luck with that.'
     	}, function(error, response) {
     		if (error) {
 	    		debug(error);
