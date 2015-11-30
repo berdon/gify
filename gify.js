@@ -24,7 +24,7 @@ function handleRequest(request, response) {
     // Grab the query string
     var gifQuery = request.post.text || randomQuery();
 
-    return imgur.search(gifQuery).then(function(results) {
+    return imgur.search(gifQuery, 0, 'top', { size: 'med' }).then(function(results) {
 	var post = undefined;
     	for (var i = 0; i < results.length; i++) {
     		if (!results[i].is_album) {
