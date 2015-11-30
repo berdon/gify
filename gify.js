@@ -38,8 +38,11 @@ function handleRequest(request, response) {
 
     	slack.webhook({
     		channel: channel,
-    		username: 'gify',
-    		text: hasResults ? ('/gify ' + request.post.text + '\r\n' + post.link) : 'Good luck with that.'
+    		username: request.post.user_name,
+    		text: hasResults ? ('/gify ' + request.post.text) : 'Good luck with that.',
+		attachments: [{
+			image_url: hasResults ? post.link : undefined
+		}]
     	}, function(error, response) {
     		if (error) {
 	    		debug(error);
