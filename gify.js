@@ -27,8 +27,9 @@ function handleRequest(request, response) {
     return imgur.search(gifQuery).then(function(results) {
     	var post = undefined;
     	for (var i = 0; i < results.length; i++) {
-    		if (results[i].layout != 'blog') {
+    		if (results[i].layout !== 'blog') {
     			post = request[i];
+    			break;
     		}
     	}
 
