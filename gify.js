@@ -2,17 +2,30 @@
 var http = require('http');
 var qs = require('querystring');
 var Imgur = require('imgur-search');
-var Slack = require('slack-node');
 var debug = require('debug')('Gify');
 
 var config = require('./config.json');
 
 var imgur = new Imgur(config.imgur_apikey);
-var slack = new Slack();
-slack.setWebhook(config.slack_webhook);
 
 //Lets define a port we want to listen to
 const PORT = process.env.PORT || 8080; 
+const MAX_SIZE = 2000000;
+
+function randomImgurPost(results, tries) {
+	if (!results || results.length == 0) {
+		return null;
+	}
+ 
+	for(var i = 0; i < Math.min(results.length, tries); i++) {
+		var index = Math.round(Math.random() * (results.length - 1));
+		if (results[index].size <= MAX_SIZE) {
+			return results[index];
+		}
+	}
+
+	return results[0];
+}
 
 function handleRequest(request, response) {
 	if (!('text' in request.post)) {
@@ -24,32 +37,29 @@ function handleRequest(request, response) {
     // Grab the query string
     var gifQuery = request.post.text || randomQuery();
 
-    return imgur.search(gifQuery, 0, 'top', { size: 'med' }).then(function(results) {
-	var post = undefined;
-    	for (var i = 0; i < results.length; i++) {
-    		if (!results[i].is_album) {
-    			post = results[i];
-    			break;
-    		}
-    	}
+    return imgur.search(gifQuery, 0, 'top', { size: 'small', type: 'anigif' }).then(function(results) {
+	var post = randomImgurPost(results, 5);
+	debug(post);
 
     	var hasResults = post != null;
-    	var channel = !hasResults ? ('@' + request.post.user_name) : (('channel_name' in request.post) ? ('#' + request.post.channel_name) : '#general');
+	var channel = 'channel_id' in request.post ? request.post.channel_id : '#general';
 
-    	slack.webhook({
-    		channel: channel,
-    		username: request.post.user_name,
-    		text: hasResults ? ('/gify ' + request.post.text) : 'Good luck with that.',
-		attachments: [{
-			image_url: hasResults ? post.link : undefined
-		}]
-    	}, function(error, response) {
-    		if (error) {
-	    		debug(error);
-	    	}
-    	});
+	var slackMessage = {
+                channel: channel,
+                username: hasResults ? request.post.user_name : 'Gify',
+                text: hasResults ? '/gify ' + request.post.text : 'Uhh, sorry @' + request.post.user_name + ', I didn\'t find anything for "' + request.post.text + '"',
+        };
 
-    	response.end();
+	if (hasResults/* && !('mp4' in post)*/) {
+		slackMessage.response_type = 'in_channel';
+		slackMessage.attachments = [{
+			text: request.post.text,
+			image_url: post.link
+		}];
+	}
+
+	response.setHeader('Content-Type', 'application/json');
+    	response.end(JSON.stringify(slackMessage));
     }, function(error) {
     	debug(error);
 
