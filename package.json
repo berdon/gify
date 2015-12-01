@@ -9,7 +9,8 @@
     "imgur-search": "git+https://github.com/berdon/imgur-search.git",
     "request": "^2.67.0",
     "giphy-api": "~1.1.11",
-    "promise": "~7.0.4"
+    "promise": "~7.0.4",
+    "slack-node": "^0.1.3"
   },
   "devDependencies": {},
   "scripts": {

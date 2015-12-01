@@ -5,9 +5,11 @@ var Imgur = require('imgur-search');
 var debug = require('debug')('Gify');
 var Promise = require('promise');
 var giphy = require('giphy-api')();
+var slack = require('slack-node')();
 
 var config = require('./config.json');
 
+slack.setWebhook(config.slack_webhook);
 var imgur = new Imgur(config.imgur_apikey);
 
 //Lets define a port we want to listen to
@@ -60,7 +62,6 @@ function handleRequest(request, response) {
     var gifQuery = request.post.text || randomQuery();
 
     return loadImage(gifQuery).then(function(results) {
-		console.log('asdfasdf', results);
 		var post = randomImgurPost(results, 5);
 		debug(post);
 
@@ -79,10 +80,16 @@ function handleRequest(request, response) {
 				text: request.post.text,
 				image_url: ((post.link || post.images.fixed_height_downsampled.url) || post.images.original.url)
 			}];
+
+			// Use the slack webhook to impersonate the user
+			slack.webhook(slackMessage);
+		} else {
+			// Respond inline for an ephemeral response
+			response.setHeader('Content-Type', 'application/json');
+    		response.write(JSON.stringify(slackMessage));
 		}
 
-		response.setHeader('Content-Type', 'application/json');
-    	response.end(JSON.stringify(slackMessage));
+		response.end();
     }, function(error) {
     	debug(error);
 
