@@ -53,31 +53,32 @@ function loadImage(query, options) {
 	}
 
 	return new Promise(function(resolve, reject) {
-		return imgur.search(query, 0, 'top', { size: 'small', type: 'anigif' }
-			).then(function(results) {
-				if (results && results.length > 0) {
-					return resolve(results.map(function(result) { return new ImgurImage(result); }));
-				}
+		return imgur.search(query, 0, 'top', { size: 'small', type: 'anigif' }).then(function(results) {
+			if (results && results.length > 0) {
+				return resolve(results.map(function(result) { return new ImgurImage(result); }));
+			}
 
-				return giphy.search({ q: query }, function(error, response) {
-					if (error) return reject(error);
-					return resolve(response.data.map(function(result) { return new GiphyImage(result); }));
-				});
-			}).then(function(results) {
-			// Eliminate images that don't fall under our rating requirement
-			var images = [];
-			results.forEach(function(image) {
-				if (ratingOrdinal(image.getRating()) <= ratingOrdinal(options.rating)) {
-					images.push(image);
-				}
+			return giphy.search({ q: query }, function(error, response) {
+				if (error) return reject(error);
+				return resolve(response.data.map(function(result) { return new GiphyImage(result); }));
 			});
-
-			return images;
 		}, function(error) {
 			console.log(error);
 			return reject(error);
 		});
+	}).then(function(results) {
+		if (!results) return [];
+
+		// Eliminate images that don't fall under our rating requirement
+		var images = [];
+		results.forEach(function(image) {
+			if (ratingOrdinal(image.getRating()) <= ratingOrdinal(options.rating)) {
+				images.push(image);
+			}
 		});
+
+		return images;
+	});
 }
 
 function handleRequest(request, response) {
