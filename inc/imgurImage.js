@@ -11,7 +11,7 @@ ImgurImage.prototype.getSize = function() {
 }
 
 ImgurImage.prototype.getImageUrl = function(maxSize) {
-	return this.link;
+	return this._imgurImage.link;
 }
 
 module.exports = ImgurImage;

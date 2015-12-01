@@ -23,7 +23,7 @@ const MAX_SIZE = 2000000;
 function ratingOrdinal(rating) {
 	switch(rating) {
 		case 'r': 		return 4;
-		case 'pg-13': 	return 3;
+		case 'pg-13':		return 3;
 		case 'pg': 		return 2;
 		case 'g': 		return 1;
 		case 'y': 		return 0;
@@ -82,6 +82,7 @@ function loadImage(query, options) {
 }
 
 function handleRequest(request, response) {
+	debug(request.post);
 	if (!('text' in request.post)) {
 		response.statusCode = 404;
 		response.end();
@@ -91,7 +92,7 @@ function handleRequest(request, response) {
     // Grab the query string
     var gifQuery = request.post.text || randomQuery();
 
-    return loadImage(gifQuery).then(function(results) {
+    return loadImage(gifQuery, { rating: request.post.channel_name !== 'privategroup' || request.post.channel_name !== 'directmessage' ? 'pg' : 'r' }).then(function(results) {
     	var image = randomImgurPost(results, 5);
     	debug(image);
 
@@ -120,6 +121,7 @@ function handleRequest(request, response) {
 			response.setHeader('Content-Type', 'application/json');
 			response.write(JSON.stringify(slackMessage));
 		}
+		debug(slackMessage);
 
 		response.end();
 	}, function(error) {
