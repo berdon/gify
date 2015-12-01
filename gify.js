@@ -3,6 +3,7 @@ var http = require('http');
 var qs = require('querystring');
 var Imgur = require('imgur-search');
 var debug = require('debug')('Gify');
+var giphy = require('giphy-api');
 
 var config = require('./config.json');
 
@@ -27,6 +28,17 @@ function randomImgurPost(results, tries) {
 	return results[0];
 }
 
+function loadImage(query) {
+	// First, try imgur
+	return imgur.search(gifQuery, 0, 'top', { size: 'small', type: 'anigif' }).then(function(results) {
+		if (!results || results.length == 0) {
+			return giphy.random(query);
+		}
+
+		return results;
+	});
+}
+
 function handleRequest(request, response) {
 	if (!('text' in request.post)) {
 		response.statusCode = 404;
@@ -37,28 +49,28 @@ function handleRequest(request, response) {
     // Grab the query string
     var gifQuery = request.post.text || randomQuery();
 
-    return imgur.search(gifQuery, 0, 'top', { size: 'small', type: 'anigif' }).then(function(results) {
-	var post = randomImgurPost(results, 5);
-	debug(post);
+    return loadImage(gifQuery).then(function(results) {
+		var post = randomImgurPost(results, 5);
+		debug(post);
 
-    	var hasResults = post != null;
-	var channel = 'channel_id' in request.post ? request.post.channel_id : '#general';
+	    	var hasResults = post != null;
+		var channel = 'channel_id' in request.post ? request.post.channel_id : '#general';
 
-	var slackMessage = {
-                channel: channel,
-                username: hasResults ? request.post.user_name : 'Gify',
-                text: hasResults ? '/gify ' + request.post.text : 'Uhh, sorry @' + request.post.user_name + ', I didn\'t find anything for "' + request.post.text + '"',
-        };
+		var slackMessage = {
+	                channel: channel,
+	                username: hasResults ? request.post.user_name : 'Gify',
+	                text: hasResults ? '/gify ' + request.post.text : 'Uhh, sorry @' + request.post.user_name + ', I didn\'t find anything for "' + request.post.text + '"',
+	        };
 
-	if (hasResults/* && !('mp4' in post)*/) {
-		slackMessage.response_type = 'in_channel';
-		slackMessage.attachments = [{
-			text: request.post.text,
-			image_url: post.link
-		}];
-	}
+		if (hasResults/* && !('mp4' in post)*/) {
+			slackMessage.response_type = 'in_channel';
+			slackMessage.attachments = [{
+				text: request.post.text,
+				image_url: post.link
+			}];
+		}
 
-	response.setHeader('Content-Type', 'application/json');
+		response.setHeader('Content-Type', 'application/json');
     	response.end(JSON.stringify(slackMessage));
     }, function(error) {
     	debug(error);
