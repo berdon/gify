@@ -5,10 +5,11 @@ var Imgur = require('imgur-search');
 var debug = require('debug')('Gify');
 var Promise = require('promise');
 var giphy = require('giphy-api')();
-var slack = require('slack-node')();
+var Slack = require('slack-node');
 
 var config = require('./config.json');
 
+var slack = new Slack();
 slack.setWebhook(config.slack_webhook);
 var imgur = new Imgur(config.imgur_apikey);
 
@@ -82,7 +83,9 @@ function handleRequest(request, response) {
 			}];
 
 			// Use the slack webhook to impersonate the user
-			slack.webhook(slackMessage);
+			slack.webhook(slackMessage, function(error, response) {
+				if (error) debug(error);
+			});
 		} else {
 			// Respond inline for an ephemeral response
 			response.setHeader('Content-Type', 'application/json');
