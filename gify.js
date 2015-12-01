@@ -1,9 +1,10 @@
-//Lets require/import the HTTP module
+//Lets requre/import the HTTP module
 var http = require('http');
 var qs = require('querystring');
 var Imgur = require('imgur-search');
 var debug = require('debug')('Gify');
-var giphy = require('giphy-api');
+var Promise = require('promise');
+var giphy = require('giphy-api')();
 
 var config = require('./config.json');
 
@@ -22,6 +23,8 @@ function randomImgurPost(results, tries) {
 		var index = Math.round(Math.random() * (results.length - 1));
 		if (results[index].size <= MAX_SIZE) {
 			return results[index];
+		} else if ('images' in results[index] && results[index].images.fixed_height_downsampled.size <= MAX_SIZE) {
+			return results[index];
 		}
 	}
 
@@ -29,13 +32,20 @@ function randomImgurPost(results, tries) {
 }
 
 function loadImage(query) {
-	// First, try imgur
-	return imgur.search(gifQuery, 0, 'top', { size: 'small', type: 'anigif' }).then(function(results) {
-		if (!results || results.length == 0) {
-			return giphy.random(query);
-		}
-
-		return results;
+	return new Promise(function(resolve, reject) {
+		return imgur.search(query, 0, 'top',
+			{ size: 'small', type: 'anigif' }
+		).then(function(results) {
+			console.log('1');
+			if (results && results.length > 0) return resolve(results);
+			return giphy.search({ q: query, rating: 'r' }, function(error, response) {
+				if (error) return reject(error);
+				return resolve(response.data);
+			});
+		}, function(error) {
+			console.log(error);
+			return reject(error);
+		});
 	});
 }
 
@@ -50,6 +60,7 @@ function handleRequest(request, response) {
     var gifQuery = request.post.text || randomQuery();
 
     return loadImage(gifQuery).then(function(results) {
+		console.log('asdfasdf', results);
 		var post = randomImgurPost(results, 5);
 		debug(post);
 
@@ -66,7 +77,7 @@ function handleRequest(request, response) {
 			slackMessage.response_type = 'in_channel';
 			slackMessage.attachments = [{
 				text: request.post.text,
-				image_url: post.link
+				image_url: ((post.link || post.images.fixed_height_downsampled.url) || post.images.original.url)
 			}];
 		}
 

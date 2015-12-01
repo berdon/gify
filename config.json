@@ -1,4 +1,4 @@
 {
-	"webhook_uri": "",
-	"imgur_apikey": ""
+	"slack_webhook": "https://hooks.slack.com/services/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",
+	"imgur_apikey": "b6a0a9ebb25a4d6"
 }
